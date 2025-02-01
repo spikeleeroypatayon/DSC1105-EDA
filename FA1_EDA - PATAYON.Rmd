@@ -1,0 +1,65 @@
+---
+title: "Formative Assessment 1"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-01-27"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Instruction
+Submit exactly two files: (i) a PDF/HTML file with your write-up and graphs and (ii) a .r/.txt/.Rmd AND/OR Github link to files with code to reproduce your graphs.
+
+1.	Download the CyTOF data (see our GC).
+2.	Choose one of the columns of the dataset and make at least two plots showing its distribution (choose from ECDF, quantile, histogram, density estimate). What does the plot tell you about the distribution of the values in that column?
+3.	Choose any two of the columns of the dataset and make a Q-Q plot comparing the distributions. What does the Q-Q plot tell you about similarities or differences between the distributions of the values in the two columns?
+Note: You may use Lecture 2 to answer the items above.
+
+import necessary libraries
+```{r}
+ library(lattice)
+ library(ggplot2)
+ library(dplyr)
+```
+
+```{r}
+data <- read.csv("C:\\Users\\spike\\Downloads\\cytof_one_experiment.csv")
+View(data)
+```
+
+```{r}
+head(data)
+```
+2. 
+```{r}
+ ggplot(data, aes(x = NKp30)) + 
+  stat_ecdf() + 
+  xlab("NKp30") + 
+  ylab("y-axis") + 
+  ggtitle("Graph of NKp30")
+```
+
+Insights:
+The NKp30 values fall within the range shown by the x-axis, which extends from little below 0 to around 8. The curve begins at zero and rises steadily until rising sharply between two and six, then dropping down near one. This indicates that there are fewer values at the extremities of the NKp30 range, with the majority of values falling between 2 and 6. The ECDF's S-shape indicates a sigmoidal or normal-like distribution with possible skewness, which means that most of the data points are not evenly distributed but rather grouped around a certain range.
+```{r}
+ ggplot(data, aes(x = NKp30)) + geom_histogram()
+```
+
+Insights:
+The x-axis displays values that are consistent with the ECDF plot, ranging from about 0 to just over 8. The bell-shaped, symmetrical histogram resembles a normal distribution. The majority of values are located in the middle, approximately between 3 and 4. The majority of NKp30 values are centered close to 4, as indicated by the highest bar, which is around 4. There is a small extension on the right tail, indicating a slight positive skew, even if the distribution is largely symmetrical. Although the right tail extends slightly, there isn't any severe skewness. Standard statistical techniques like mean and standard deviation would be helpful descriptors because the distribution appears to be well-behaved.
+
+3.
+```{r}
+KIR3DL1_data <- data %>% subset(select = KIR3DL1)
+NKp44_data <- data %>% subset(select = NKp44)
+
+qqplot(KIR3DL1_data$KIR3DL1, NKp44_data$NKp44)
+
+```
+
+Insights:
+The distributions of KIR3DL1 and NKp44 appear to have similar shapes, as most of the points fall on a straight diagonal line. There is a modest difference between the distributions' tails, as seen by the deviations at both the lower and upper ends. While the modest deviation at the top-right hints that NKp44 may have more extreme high values (possible outliers), the small curvature at the bottom end shows that NKp44 has a heavier lower tail (more small values).  The variances at the tails may indicate that scaling or modification (such as log transformation) is required to properly align these two variables, which should have the exact same distribution. The low and high ends show differences, indicating that NKp44 may have somewhat more extreme values.
