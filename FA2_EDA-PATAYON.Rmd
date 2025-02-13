@@ -1,0 +1,135 @@
+---
+title: "Formative Assessment 2"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-02-13"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Instruction
+For the first set of questions, we will look again at the CyTOF data Download CyTOF data. Each row in the dataset represents a cell, and each column in the dataset represents a protein, and the value is element i, j of the dataset represents the amount of protein j in cell i.
+
+1. Use pivot_longer to reshape the dataset into one that has two columns, the first giving the protein identity and the second giving the amount of the protein in one of the cells. The dataset you get should have 1750000 rows (50000 cells in the original dataset times 35
+proteins).
+2. Use group_by and summarise to find the median protein level and the median absolute deviation of the protein level for each marker. (Use the R functions median and mad).
+3. Make a plot with mad on the x-axis and median on the y-axis. This is known as a spreadlocation (s-l) plot. What does it tell you about the relationship betwen the median and the mad?
+
+```{r}
+data <- read.csv("C:\\Users\\spike\\Downloads\\cytof_one_experiment (2).csv")
+head(data)
+```
+
+1. Use pivot_longer to reshape the dataset into one that has two columns, the first giving the protein identity and the second giving the amount of the protein in one of the cells. The dataset you get should have 1750000 rows (50000 cells in the original dataset times 35
+
+```{r}
+library(tidyverse)
+library(ggrepel)
+```
+
+
+```{r}
+
+# Reshape the dataset
+long_data <- data %>%
+  pivot_longer(
+    cols = everything(),  # Select all columns to pivot
+    names_to = "Protein",  # New column for protein identity
+    values_to = "Amount"   # New column for protein amount
+  )
+
+# Check the structure
+print(dim(long_data))  # Should be (1750000, 2)
+head(long_data)
+
+```
+
+2. Use group_by and summarise to find the median protein level and the median absolute deviation of the protein level for each marker. (Use the R functions median and mad).
+
+```{r}
+# Compute median and MAD for each protein marker
+protein_stats <- long_data %>%
+  group_by(Protein) %>%  # Group by protein marker
+  summarise(
+    Median_Level = median(Amount, na.rm = TRUE),  # Calculate median
+    MAD_Level = mad(Amount, na.rm = TRUE)  # Calculate median absolute deviation
+  ) %>%
+  arrange(desc(Median_Level))  # Optional: Sort by median value
+
+# Print results
+print(protein_stats)
+```
+
+3. Make a plot with mad on the x-axis and median on the y-axis. This is known as a spreadlocation (s-l) plot. What does it tell you about the relationship betwen the median and the mad?
+```{r}
+ggplot(protein_stats, aes(x = MAD_Level, y = Median_Level, label = Protein)) +
+  geom_point(color = "blue", size = 3, alpha = 0.7) +  # Scatter plot points
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Trend line
+  geom_text_repel(size = 4, max.overlaps = 15) +  # Smart text labels
+  labs(
+    title = "Spread-Location (S-L) Plot of Protein Levels",
+    x = "Median Absolute Deviation (MAD)",
+    y = "Median Protein Level"
+  ) +
+  theme_minimal()
+```
+To better visualize this:
+```{r}
+ggplot(protein_stats, aes(x = MAD_Level, y = Median_Level, label = Protein)) +
+  geom_point(color = "blue", size = 3, alpha = 0.7) +  # Scatter plot points
+  geom_line(aes(group = 1), color = "black") +  # Line connecting points
+  geom_smooth(method = "lm", color = "red", linetype = "dashed", se = FALSE) +  # Trend line
+  geom_text_repel(size = 4, max.overlaps = 15) +  # Labels to avoid overlap
+  labs(
+    title = "Spread-Location (S-L) Plot",
+    subtitle = "MAD vs. Median Protein Level",
+    x = "Median Absolute Deviation (MAD)",
+    y = "Median Protein Level"
+  ) +
+  theme_minimal()
+```
+
+Insights:
+
+a. Weak Positive Relationship
+The red dashed line (trend line) suggests a slight upward trend, meaning higher median protein levels tend to have slightly higher MAD values.
+However, the trend is not strong, indicating that median protein levels and MAD do not have a perfectly linear relationship.
+
+b. High Variability at Low MAD
+Many proteins with low MAD values (left side of the plot) have high or very low median levels.
+This suggests that some proteins have stable expression (low MAD) but varying median levels.
+
+c. Large MAD ≠ Large Median
+Some proteins with high MAD values do not necessarily have high median levels.
+This means that some proteins show high variability in expression even if their overall median level is not that high.
+
+d. Outliers
+Perforin and CD56 have the highest median values but differ in MAD, meaning one is more stable than the other.
+TRAIL and KIR markers have very low median levels, but some still show variability.
+
+
+4. Using either pivot_longer on its own or pivot_longer in combination with separate, reshape the dataset so that it has columns for country, event, year, and score.
+```{r}
+remotes::install_github("dcl-docs/dcldata")
+```
+```{r}
+library(dcldata)
+```
+```{r}
+gymnastics_long <- example_gymnastics_2 %>%
+  pivot_longer(
+    cols = -country,  # Keep 'country' column, reshape the rest
+    names_to = "event_year",  # Create a new column with event-year info
+    values_to = "score"  # Store the values in 'score'
+  ) %>%
+  separate(event_year, into = c("event", "year"), sep = "_")  # Split event and year
+
+# View the reshaped data
+head(gymnastics_long)
+
+```
+
