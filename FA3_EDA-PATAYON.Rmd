@@ -1,0 +1,104 @@
+---
+title: "Formative Assessment 3"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-02-25"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Instruction
+
+1. Create a histogram on the diamonds dataset, for example with
+
+ggplot() + geom_histogram(aes(x = carat), data = diamonds)
+
+Re-write this using the layer function like we did in class. Hint: if you don’t know what the default values for some of the aspects of the plot, examine p$layers.
+
+2. Remember that a histogram is a plot with stat_bin and geom_bar. Modify your histogram code so that it uses a different geom, for example geom_line or geom_point. This should be simple once you have the layer specification of a histogram.
+
+3. In your histogram (the one plotted with bars that you created in question 1), add an aesthetic mapping from one of the factor variables (maybe color or clarity) to the fill or color aesthetic.
+
+4. What is the default position adjustment for a histogram? Try changing the position adjustment in the histogram you created in question 3 to something different (hint: try dodge). 
+
+load the ggplot2:
+```{r}
+library(ggplot2)
+```
+
+use data() to get the diamond data set:
+```{r}
+data("diamonds")
+```
+
+display diamonds:
+```{r}
+head(diamonds)
+```
+
+for extra information, we will summarize each variable in the data set:
+```{r}
+summary(diamonds)
+```
+
+1. reate a histogram on the diamonds dataset, for example with
+
+ggplot() + geom_histogram(aes(x = carat), data = diamonds)
+
+Re-write this using the layer function like we did in class. Hint: if you don’t know what the default values for some of the aspects of the plot, examine p$layers.
+
+```{r}
+p <- ggplot(data = diamonds) +
+  layer(
+    mapping = aes(x = carat),
+    stat = "bin",
+    geom = "bar",
+    position = "stack",
+    data = diamonds
+  )
+print(p)
+```
+2. Remember that a histogram is a plot with stat_bin and geom_bar. Modify your histogram code so that it uses a different geom, for example geom_line or geom_point. This should be simple once you have the layer specification of a histogram.
+```{r}
+p_line <- ggplot(data = diamonds) +
+  layer(
+    mapping = aes(x = carat, y = after_stat(count)), 
+    stat = "bin", 
+    geom = "line",
+    position = "identity",
+    data = diamonds
+  )
+print(p_line)
+```
+3. In your histogram (the one plotted with bars that you created in question 1), add an aesthetic mapping from one of the factor variables (maybe color or clarity) to the fill or color aesthetic.
+```{r}
+p_fill <- ggplot(data = diamonds) +
+  layer(
+    mapping = aes(x = carat, fill = clarity),
+    stat = "bin",
+    geom = "bar",
+    position = "stack",
+    data = diamonds
+  )
+print(p_fill)
+
+```
+
+4. What is the default position adjustment for a histogram? Try changing the position adjustment in the histogram you created in question 3 to something different (hint: try dodge). 
+
+```{r}
+p_dodge <- ggplot(data = diamonds) +
+  layer(
+    mapping = aes(x = carat, fill = clarity),
+    stat = "bin",
+    geom = "bar",
+    position = "dodge",
+    data = diamonds
+  )
+print(p_dodge)
+```
+
