@@ -1,0 +1,307 @@
+---
+title: "Summative Assessment 1"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-03-16"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summative Assessment 1
+
+Objective: The purpose of this assessment is to evaluate your understanding of exploratory data analysis techniques, including univariate, bivariate, and trivariate/hypervariate data exploration using computational tools and visualizations.
+
+Dataset: EDA_Ecommerce_Assessment.csv
+Dataset Description: The dataset contains information about customer purchasing behavior in an e-commerce platform. The variables include:
+
+* Customer_ID: Unique identifier for each customer
+* Gender: Male or Female
+* Age: Customer's age in years
+* Browsing_Time: Average time spent on the website per visit (in minutes)
+* Purchase_Amount: Total amount spent in a single transaction (in USD)
+* Number_of_Items: Number of items purchased per transaction
+* Discount_Applied: Discount percentage applied to the transaction
+* Total_Transactions: Total number of transactions by the customer
+* Category: Product category (e.g., Electronics, Clothing, Home & Kitchen, etc.)
+* Satisfaction_Score: Customer satisfaction score (1-5 scale)
+
+## Unit 1: Univariate Data Analysis
+1. Load the dataset and summarize its structure.
+2. Create histograms and boxplots to visualize the distribution of Purchase_Amount, Number_of_Items, and Satisfaction_Score.
+3. Compute measures of central tendency (mean, median, mode) and spread (variance, standard deviation, IQR) for Purchase_Amount.
+4. Compare the distribution of Browsing_Time and Purchase_Amount across different Gender groups using density plots.
+5. Apply a logarithmic or square root transformation on Browsing_Time and evaluate changes in skewness.
+6. Fit a simple linear regression model predicting Purchase_Amount based on Browsing_Time. Interpret the results.
+7. Use ggplot2 (or equivalent) to create scatter plots and regression lines.
+
+### Part 1:
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(e1071)
+```
+
+Load the data set:
+```{r}
+data <- read.csv("C:\\Users\\spike\\Downloads\\EDA_Ecommerce_Assessment.csv")
+```
+```{r}
+head(data)
+```
+Here is a quick summarization of each elements in the csv file:
+```{r}
+summary(data)
+```
+### Part 2:
+Histogram of Purchase_Amount, Number_of_items, and Satisfaction_Score
+```{r}
+ggplot(data, aes(x = Purchase_Amount)) + 
+  geom_histogram( fill = "blue", alpha = 1, color = "black") + 
+  ggtitle("Histogram of Purchase Amount")
+
+ggplot(data, aes(x = Number_of_Items )) + 
+  geom_histogram( fill = "navy", alpha = 1, color = "black") + 
+  ggtitle("Histogram of Purchase Amount")
+
+ggplot(data, aes(x = Satisfaction_Score )) + 
+  geom_histogram( fill = "royalblue", alpha = 1, color = "black") + 
+  ggtitle("Histogram of Purchase Amount")
+```
+
+Boxplot of Purchase_Amount, Number_of_items, and Satisfaction_Score
+```{r}
+ggplot(data, aes(y = Purchase_Amount)) + 
+  geom_boxplot(fill = "orange4", alpha = 1, color = "black") + 
+  ggtitle("Boxplot of Purchase Amount")
+
+ggplot(data, aes(y = Number_of_Items)) + 
+  geom_boxplot(fill = "orange3", alpha = 1, color = "black") + 
+  ggtitle("Boxplot of Number of Items")
+
+ggplot(data, aes(y = Satisfaction_Score)) + 
+  geom_boxplot(fill = "orange2", alpha = 1, color = "black") + 
+  ggtitle("Boxplot of Satisfaction Score")
+```
+
+### Part 3
+central tendency (mean, median, mode) and spread (variance, standard deviation, IQR) of Purchase_Amount
+```{r}
+# Central Tendency
+mean_value <- mean(data$Purchase_Amount, na.rm = TRUE)
+median_value <- median(data$Purchase_Amount, na.rm = TRUE)
+mode_value <- as.numeric(names(sort(table(data$Purchase_Amount), decreasing = TRUE)[1])) 
+
+# Spread
+variance_value <- var(data$Purchase_Amount, na.rm = TRUE)
+sd_value <- sd(data$Purchase_Amount, na.rm = TRUE)
+iqr_value <- IQR(data$Purchase_Amount, na.rm = TRUE)
+
+list(Mean = mean_value, Median = median_value, Mode = mode_value, 
+     Variance = variance_value, SD = sd_value, IQR = iqr_value)
+```
+
+### Part 4
+```{r}
+ggplot(data, aes(x = Browsing_Time, fill = Gender)) +
+  geom_density(alpha = 0.5) +
+  ggtitle("Density Plot of Browsing Time by Gender")
+
+ggplot(data, aes(x = Purchase_Amount, fill = Gender)) +
+  geom_density(alpha = 0.5) +
+  ggtitle("Density Plot of Purchase Amount by Gender")
+```
+### Part 5
+```{r}
+# Log Transformation
+data$Browsing_Time_log <- log1p(data$Browsing_Time)
+log_skewness <- skewness(data$Browsing_Time_log, na.rm = TRUE)
+
+# Square Root Transformation
+data$Browsing_Time_sqrt <- sqrt(data$Browsing_Time)
+sqrt_skewness <- skewness(data$Browsing_Time_sqrt, na.rm = TRUE)
+
+# Print Skewness
+list(Log_Skewness = log_skewness, Sqrt_Skewness = sqrt_skewness)
+```
+### Part 6
+```{r}
+lm_model <- lm(Purchase_Amount ~ Browsing_Time, data = data)
+summary(lm_model)
+```
+### Part 7
+```{r}
+ggplot(data, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  ggtitle("Scatter Plot of Browsing Time vs Purchase Amount with Regression Line")
+```
+## Unit 2: Bivariate Data Analysis
+8. Create scatter plots to explore the relationship between Purchase_Amount and Number_of_Items.
+9. Fit a polynomial regression model for Purchase_Amount and Browsing_Time and compare it with a simple linear model.
+10. Apply LOESS (Locally Estimated Scatterplot Smoothing) to Purchase_Amount vs. Browsing_Time and visualize the results.
+11. Compare robust regression methods (Huber or Tukey regression) with ordinary least squares (OLS).
+
+
+### Part 8
+```{r}
+ggplot(data, aes(x = Number_of_Items, y = Purchase_Amount )) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  ggtitle("Scatter Plot of Purchase Amount vs. Number of Items")
+
+```
+
+### Part 9
+
+```{r}
+lm_model <- lm(Purchase_Amount ~ Browsing_Time, data = data)
+summary(lm_model)
+```
+```{r}
+poly_model <- lm(Purchase_Amount ~ poly(Browsing_Time, 2, raw = TRUE), data = data)
+summary(poly_model)
+```
+```{r}
+anova(lm_model, poly_model)
+```
+remark: If the p-value from anova() is small, the polynomial model provides a significantly better fit than the simple linear model.
+
+to better visualize it:
+
+```{r}
+ggplot(data, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2, raw = TRUE), color = "green") +
+  geom_smooth(method = "lm", color = "red") + 
+  ggtitle("Polynomial vs. Linear Regression on Purchase Amount")
+```
+
+### Part 10
+
+```{r}
+ggplot(data, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", color = "purple") +
+  ggtitle("LOESS Smoothing: Purchase Amount vs. Browsing Time")
+
+```
+
+### Part 11
+
+```{r}
+ols_model <- lm(Purchase_Amount ~ Browsing_Time, data = data)
+summary(ols_model)
+
+```
+
+```{r}
+library(MASS)
+huber_model <- rlm(Purchase_Amount ~ Browsing_Time, data = data)
+summary(huber_model)
+
+```
+```{r}
+library(robustbase)
+tukey_model <- lmrob(Purchase_Amount ~ Browsing_Time, data = data)
+summary(tukey_model)
+
+```
+```{r}
+summary(ols_model)$r.squared  # R-squared of OLS
+summary(huber_model)$r.squared  # R-squared of Huber
+summary(tukey_model)$r.squared  # R-squared of Tukey
+
+```
+
+OLS is sensitive to outliers, while Huber and Tukey regressions handle them better.
+
+Interpretation:
+
+If R-squared is much lower for OLS but remains stable for Huber or Tukey, it suggests that outliers are influencing OLS.
+If Tukey’s regression shows improvement, non-Gaussian noise is likely present.
+
+## Unit 3: Trivariate/Hypervariate Data Analysis
+12. Explore interaction effects between Browsing_Time and Category on Purchase_Amount using interaction plots. 
+
+13. Create coplots of Purchase_Amount against Browsing_Time for different levels of Category. 
+
+14. Use level plots or contour plots to visualize relationships between Browsing_Time, Number_of_Items, and Purchase_Amount. 
+
+15. Perform multiple regression with Purchase_Amount as the dependent variable and Browsing_Time, Number_of_Items, and Satisfaction_Score as predictors. Perform model selection and assess variable importance.
+
+### Part 12
+```{r}
+library(interactions)
+library(ggplot2)
+
+# Interaction plot using ggplot2
+ggplot(data, aes(x = Browsing_Time, y = Purchase_Amount, color = Category)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("Interaction Effect of Browsing Time and Category on Purchase Amount")
+
+```
+
+```{r}
+ggplot(data, aes(x = Browsing_Time, y = Purchase_Amount, color = Category)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", se = FALSE) +
+  ggtitle("LOESS Interaction Effect of Browsing Time and Category on Purchase Amount")
+
+```
+
+
+
+### Part 13
+```{r}
+library(lattice)
+
+# Coplot: Purchase Amount vs Browsing Time for different Categories
+coplot(Purchase_Amount ~ Browsing_Time | Category, data = data,
+       panel = panel.smooth)
+
+```
+### Part 14
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = Browsing_Time, y = Number_of_Items, fill = Purchase_Amount)) +
+  geom_tile() +
+  scale_fill_viridis_c() + 
+  ggtitle("Level Plot of Browsing Time, Number of Items, and Purchase Amount")
+
+```
+
+### Part 15
+
+```{r}
+multi_model <- lm(Purchase_Amount ~ Browsing_Time + Number_of_Items + Satisfaction_Score, data = data)
+summary(multi_model)
+
+```
+```{r}
+library(MASS)
+
+# Stepwise selection using AIC
+stepwise_model <- stepAIC(multi_model, direction = "both")
+summary(stepwise_model)
+
+```
+```{r}
+library(car)
+
+vif(multi_model)  # Variance Inflation Factor (detects multicollinearity)
+
+library(caret)
+
+# Calculate importance
+importance <- varImp(multi_model, scale = TRUE)
+print(importance)
+
+```
+
