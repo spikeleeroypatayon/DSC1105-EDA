@@ -1,0 +1,161 @@
+---
+title: "Formative Assessment 5"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-05-02"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1:
+```{r}
+# Load libraries
+library(ggplot2)
+library(dplyr)
+
+sales_data <- read.csv("C:\\Users\\spike\\Downloads\\store_sales_data.csv")
+
+head(sales_data)
+str(sales_data)
+summary(sales_data)
+
+# Histogram of sales count
+ggplot(sales_data, aes(x = sales_count)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Sales Count", x = "Sales Count", y = "Frequency")
+
+# Bar plot: Frequency of each store_size
+ggplot(sales_data, aes(x = store_size)) +
+  geom_bar(fill = "lightgreen", color = "black") +
+  labs(title = "Store Size Frequency", x = "Store Size", y = "Count")
+
+# Proportion of days with promo
+table(sales_data$promo)
+prop.table(table(sales_data$promo))
+
+# Proportion of days with holiday
+table(sales_data$holiday)
+prop.table(table(sales_data$holiday))
+
+```
+
+## Step 2:
+```{r}
+# Fit Poisson regression model
+model_poisson <- glm(sales_count ~ day_of_week + promo + holiday + store_size,
+                     data = sales_data,
+                     family = poisson())
+
+# Show model summary
+summary(model_poisson)
+
+```
+Intepretation:
+
+### Intercept (Estimate = 2.995)
+This is the expected log of sales count when all predictors are at their baseline:
+
+Day of week = 0 (usually reference or Monday depending on encoding)
+
+promo = 0 (no promotion)
+
+holiday = 0 (not a holiday)
+
+store_size = baseline category (likely large, since medium and small are listed)
+
+Expected sales:
+
+exp(2.995)≈19.97
+
+So, a large store on the baseline day without promo or holiday is expected to have ~20 sales.
+
+### day_of_week (Estimate = 0.051)
+Each additional day (assuming encoded as numeric: 0 = Monday, 6 = Sunday) increases log sales by 0.051.
+
+This means sales tend to increase slightly later in the week.
+
+exp(0.051)≈1.052
+
+5.2% increase in sales per day progression through the week.
+
+promo (Estimate = 0.411)
+Promotions increase expected log sales by 0.411.
+
+exp(0.411)≈1.509
+Sales increase by about 51% when a promotion is active.
+this is the strongest positive predictor in the model.
+
+### holiday (Estimate = -0.331)
+Holidays reduce expected log sales by 0.331.
+
+exp(−0.331)≈0.718
+Sales decrease by about 28% on holidays.
+
+### store_size Effects (Reference: Large)
+Medium Store:
+
+exp(−0.697)≈0.498
+Medium stores have ~50% of the sales of large stores, all else equal.
+
+Small Store:
+
+exp(−1.396)≈0.248
+Small stores have only ~25% of the sales of large stores.
+## Step 3:
+```{r}
+# Check for overdispersion
+deviance(model_poisson) / df.residual(model_poisson)
+
+```
+
+```{r}
+# Fit quasi-Poisson model
+model_quasi <- glm(sales_count ~ day_of_week + promo + holiday + store_size,
+                   data = sales_data,
+                   family = quasipoisson())
+
+# Fit negative binomial model (if MASS is available)
+library(MASS)
+model_nb <- glm.nb(sales_count ~ day_of_week + promo + holiday + store_size,
+                   data = sales_data)
+
+# Compare models using AIC
+AIC(model_poisson, model_nb)
+
+```
+
+## Step 4
+```{r}
+# Create new data frame for prediction
+new_data <- data.frame(
+  day_of_week = c(0, 6),
+  promo = c(1, 0),
+  holiday = c(0, 1),
+  store_size = c("medium", "large")
+)
+
+# Predict expected sales
+predict(model_poisson, newdata = new_data, type = "response")
+
+```
+Intepretation:
+Medium store, Monday (day_of_week = 0), with promotion, no holiday
+We got a predicted sale of 15.01 or 15 sales with that date. Meaning with a promotion running, a medium-sized store should sell roughly 15 goods on a typical weekday.
+
+Large store, Sunday (day_of_week = 6), no promotion, holiday
+We got a predicted sale of 19.50 or 20 sales with that dat. Meaning even on a holiday, a large business should sell about 19.5 goods, however the lack of promotion could negatively impact sales.
+
+Some other insights:
+Sales are obviously increased by the promotion (Scenario 1 has a promotion, but Scenario 2 does not).
+
+Store size matters: even on a holiday, the larger store (Scenario 2) does well.
+
+Sunday may naturally have better sales because of more foot traffic, even if it is a holiday and there is no marketing.
+
+## Step 5:
+The Poisson regression model provided reasonable insights into factors influencing store sales. The model fit was decent, though a slight overdispersion was detected, suggesting a quasi-Poisson or negative binomial model might be more appropriate. Among all predictors, promotion had the strongest impact, significantly increasing expected sales. Store size also showed a notable influence, with larger stores experiencing higher sales counts. One limitation of this model is its assumption that the mean equals the variance (in the Poisson model), which often doesn't hold in real-world sales data due to variability caused by external events or local factors. Future models should also consider interaction effects and time-based trends for improved accuracy.
+
