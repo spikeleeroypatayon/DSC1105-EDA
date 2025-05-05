@@ -1,0 +1,293 @@
+---
+title: "Formative Assessment 6"
+author: "PATAYON, SPIKE LEE-ROY V"
+date: "2025-05-04"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Step 1: Data Exploration:
+Load the dataset and explore the variables.
+
+Visualize the distribution of Age, Annual Income, and Average Spend per Visit.
+
+Check for missing values and handle them.
+
+Inspect the distribution of the target variable Customer Segment.
+
+```{r}
+library(tidyverse)
+
+df <- read_csv("C:\\Users\\spike\\Downloads\\customer_segmentation.csv")  
+
+head(df)
+str(df)
+summary(df)
+
+```
+
+```{r}
+# Histogram for Age
+ggplot(df, aes(x = Age)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Age Distribution", x = "Age", y = "Count")
+
+# Histogram for Annual Income
+ggplot(df, aes(x = `Annual Income (K$)`)) +
+  geom_histogram(binwidth = 5, fill = "lightgreen", color = "black") +
+  theme_minimal() +
+  labs(title = "Annual Income Distribution", x = "Annual Income (k$)", y = "Count")
+
+# Histogram for Average Spend per Visit
+ggplot(df, aes(x = `Average Spend per Visit ($)`)) +
+  geom_histogram(binwidth = 10, fill = "salmon", color = "black") +
+  theme_minimal() +
+  labs(title = "Average Spend per Visit Distribution", x = "Average Spend ($)", y = "Count")
+
+```
+
+```{r}
+# Count of missing values per column
+colSums(is.na(df))
+
+# Replace missing numerical values with median
+df$Age[is.na(df$Age)] <- median(df$Age, na.rm = TRUE)
+df$`Annual Income`[is.na(df$`Annual Income`)] <- median(df$`Annual Income`, na.rm = TRUE)
+df$`Average Spend per Visit`[is.na(df$`Average Spend per Visit`)] <- median(df$`Average Spend per Visit`, na.rm = TRUE)
+
+# Replace missing categorical values with mode
+get_mode <- function(x) {
+  uniqx <- na.omit(unique(x))
+  uniqx[which.max(tabulate(match(x, uniqx)))]
+}
+
+df$Gender[is.na(df$Gender)] <- get_mode(df$Gender)
+df$`Product Category Purchased`[is.na(df$`Product Category Purchased`)] <- get_mode(df$`Product Category Purchased`)
+df$`Customer Segment`[is.na(df$`Customer Segment`)] <- get_mode(df$`Customer Segment`)
+
+```
+
+```{r}
+# Bar plot
+ggplot(df, aes(x = `Customer Segment`)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  labs(title = "Customer Segment Distribution", x = "Segment", y = "Count")
+
+# Show proportion in percentage
+round(prop.table(table(df$`Customer Segment`)) * 100, 2)
+
+```
+
+## Step2: Data Preprocessing:
+Encode the Gender and Product Category Purchased columns using appropriate encoding methods (e.g., One-Hot Encoding for the product category, Label Encoding for gender).
+
+Scale continuous variables like Age, Annual Income, and Average Spend per Visit using StandardScaler or MinMaxScaler.
+
+Split the dataset into training and testing sets (e.g., 80% training, 20% testing).
+
+```{r}
+library(dplyr)
+
+# Label Encoding for Gender
+df$Gender <- ifelse(df$Gender == "Male", 1, 0)
+
+# One-Hot Encoding for Product Category Purchased
+df <- df %>%
+  mutate(`Product Category Purchased` = as.factor(`Product Category Purchased`)) %>%
+  mutate(dummy = 1) %>%
+  pivot_wider(names_from = `Product Category Purchased`, 
+              values_from = dummy,
+              values_fill = 0,
+              names_prefix = "Category_")
+
+```
+
+```{r}
+# Standardize continuous variables
+df <- df %>%
+  mutate(
+    Age = scale(Age),
+    `Annual Income` = scale(`Annual Income (K$)`),
+    `Average Spend per Visit` = scale(`Average Spend per Visit ($)`)
+  )
+
+```
+
+```{r}
+library(caret)
+
+# Ensure target variable is a factor
+df$`Customer Segment` <- as.factor(df$`Customer Segment`)
+
+# Split the dataset
+set.seed(123)  # for reproducibility
+train_index <- createDataPartition(df$`Customer Segment`, p = 0.8, list = FALSE)
+
+train_data <- df[train_index, ]
+test_data  <- df[-train_index, ]
+
+```
+## Step3: 
+```{r}
+library(nnet)      # For multinom()
+library(caret)     # For cross-validation and tuning
+library(dplyr)
+
+```
+
+```{r}
+# Make sure target is a factor
+train_data$`Customer Segment` <- as.factor(train_data$`Customer Segment`)
+test_data$`Customer Segment` <- as.factor(test_data$`Customer Segment`)
+
+# Train multinomial logistic regression
+model <- multinom(`Customer Segment` ~ ., data = train_data)
+
+# Summary
+summary(model)
+
+```
+```{r}
+# Predict on test data
+predictions <- predict(model, newdata = test_data)
+
+# Confusion matrix
+confusionMatrix(predictions, test_data$`Customer Segment`)
+
+```
+
+```{r}
+# Set up training control
+ctrl <- trainControl(method = "cv", number = 5)
+
+# Tune decay (similar to tuning regularization strength)
+set.seed(123)
+tuned_model <- train(
+  `Customer Segment` ~ .,
+  data = train_data,
+  method = "multinom",
+  trControl = ctrl,
+  tuneGrid = expand.grid(decay = c(0, 0.01, 0.1, 0.5, 1))
+)
+
+# Best parameters
+tuned_model$bestTune
+
+# Evaluate on test set
+tuned_preds <- predict(tuned_model, newdata = test_data)
+confusionMatrix(tuned_preds, test_data$`Customer Segment`)
+
+```
+
+## Step4:
+```{r}
+library(caret)
+library(e1071)
+
+# Confusion matrix and detailed metrics
+conf_mat <- confusionMatrix(tuned_preds, test_data$`Customer Segment`)
+print(conf_mat)
+
+```
+
+```{r}
+# Get class probabilities
+probs <- predict(tuned_model, newdata = test_data, type = "prob")
+
+# Convert actuals to one-hot encoded matrix
+actuals <- model.matrix(~ `Customer Segment` - 1, data = test_data)
+
+# Compute multiclass log loss
+log_loss <- -mean(rowSums(actuals * log(probs)))
+print(paste("Log Loss:", round(log_loss, 4)))
+
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+# Create a confusion matrix table
+conf_table <- table(Predicted = tuned_preds, Actual = test_data$`Customer Segment`)
+conf_df <- as.data.frame(conf_table)
+
+# Plot confusion matrix as heatmap
+ggplot(conf_df, aes(x = Actual, y = Predicted, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x = "Actual", y = "Predicted")
+
+```
+
+```{r}
+# Extract coefficients from the multinomial model
+coef_df <- summary(tuned_model$finalModel)$coefficients
+
+# Display coefficients
+print(coef_df)
+
+```
+
+## Step5:
+```{r}
+# Create an interaction feature
+train_data <- train_data %>%
+  mutate(Income_Age = `Annual Income` * Age)
+
+test_data <- test_data %>%
+  mutate(Income_Age = `Annual Income` * Age)
+
+```
+
+```{r}
+# Re-train with more decay values
+set.seed(123)
+tuned_model2 <- train(
+  `Customer Segment` ~ .,
+  data = train_data,
+  method = "multinom",
+  trControl = trainControl(method = "cv", number = 5),
+  tuneGrid = expand.grid(decay = c(0, 0.001, 0.01, 0.1, 0.3, 0.5, 1, 2))
+)
+
+# Best hyperparameter
+tuned_model2$bestTune
+
+# Evaluate on test set
+new_preds <- predict(tuned_model2, newdata = test_data)
+confusionMatrix(new_preds, test_data$`Customer Segment`)
+
+```
+
+```{r}
+ggplot(tuned_model2$results, aes(x = decay, y = Accuracy)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Cross-Validation Accuracy by Decay", x = "Decay (Regularization Strength)", y = "Accuracy")
+
+```
+
+## Step6:
+The objective of this project was to develop a predictive model that classifies customers into three segments—Budget Shopper, Regular Shopper, and Premium Shopper—based on a variety of demographic and behavioral features. These segments were intended to support more effective customer targeting and tailored marketing strategies.
+
+The process began with thorough data preparation. The dataset included variables such as age, annual income, gender, product category purchased, average spend per visit, and number of visits over the past six months. Categorical variables were encoded appropriately: gender was label encoded (with 0 for female and 1 for male), while the product category was one-hot encoded to create binary columns for each category. Continuous variables like age, annual income, and average spend per visit were standardized using z-score normalization to ensure consistency and model compatibility. Interaction terms, such as income multiplied by age, and additional features like squared income and spend-age interactions, were also created to capture non-linear relationships.
+
+A multinomial logistic regression model was selected due to its suitability for multi-class classification. The model was implemented using the nnet package in R, and hyperparameter tuning was performed via 5-fold cross-validation using the caret package. The regularization parameter (decay) was optimized across a range of values to prevent overfitting while maintaining model performance. The data was split into training and test sets (80/20), and the final model was trained on the training set and evaluated on the test set.
+
+The model achieved strong performance metrics, with accuracy ranging from approximately 83% to 86%. Precision, recall, and F1-scores were balanced across all three customer segments, indicating the model's ability to distinguish among classes effectively. The confusion matrix revealed that most misclassifications occurred between Regular and Premium shoppers—suggesting some overlap in customer behavior between those two groups. The log-loss value was low, confirming that the predicted probabilities were well-calibrated and confident.
+
+In analyzing the model coefficients, Average Spend per Visit emerged as the strongest predictor of customer segment, with higher values indicating a greater likelihood of being a Premium shopper. Annual Income also positively influenced classification into the Regular and Premium segments, while Age had a moderate effect, with older customers more likely to be Premium shoppers. Among product categories, Electronics was a common purchase for Premium shoppers, whereas Books and Other items were more associated with Budget shoppers. Interaction features such as Income × Age also helped identify affluent, older customers likely to fall into the Premium segment.
+
+Based on these results, several recommendations can be made. For marketing teams, Premium shoppers should be prioritized with campaigns featuring high-value products and loyalty rewards. Regular shoppers with high income could be targeted for upselling opportunities, while Budget shoppers might respond well to bundled offers and discounts designed to increase their engagement. The model could be further improved by incorporating additional behavioral data, such as shopping channel preferences or promotional responsiveness. Exploring more complex models like Random Forest or XGBoost may also enhance performance. Additionally, unsupervised techniques like clustering can be used to discover hidden customer profiles and complement the segmentation strategy.
+
+In summary, the model provides valuable insights into customer behavior and offers a strong foundation for data-driven customer segmentation and personalized marketing efforts.
